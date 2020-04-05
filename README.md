@@ -1,4 +1,4 @@
-# Computer Vistion 
+# Computer Vision 
 - assignment1:
   - k-Nearest Neighbor classifier
   - Training a Support Vector Machine
