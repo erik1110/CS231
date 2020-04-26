@@ -80,17 +80,13 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-<<<<<<< HEAD
-        h1=np.maximum(0,np.dot(X,W1)+b1)
-        scores=np.dot(h1,W2)+b2
-=======
+
         #first layer pre-activation
         z1 = X.dot(W1) + b1
         #first layer activation-RELU
         a1 = np.maximum(0, z1)
         #second layer pre-activation
         scores = a1.dot(W2) + b2
->>>>>>> 80c8ecdc101a00ec17929344d81c69bedd576ff5
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -108,10 +104,7 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-<<<<<<< HEAD
-        
-        
-=======
+
         #softmax
         exp_scores = np.exp(scores)
         a2 = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
@@ -127,7 +120,6 @@ class TwoLayerNet(object):
         
         #loss
         loss = data_loss + reg_loss
->>>>>>> 80c8ecdc101a00ec17929344d81c69bedd576ff5
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
