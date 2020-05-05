@@ -149,8 +149,22 @@ def adam(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    learning_rate = config['learning_rate']
+    beta1 = config['beta1']
+    beta2 = config['beta2']
+    epsilon = config['epsilon']
+    m = config['m']
+    v = config['v']
 
+    m = beta1*m + (1.0-beta1)*dw
+    v = beta2*v + (1.0-beta2)*(dw**2)
+    t = config['t'] + 1
+    m_bias_corrected = m / (1.0 - beta1**t)
+    v_bias_corrected = v / (1.0 - beta2**t)   
+    config['m'] = m
+    config['v'] = v
+    config['t'] = t
+    next_w = w - (learning_rate * m_bias_corrected / (np.sqrt(v_bias_corrected) + epsilon))
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #

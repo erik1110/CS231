@@ -34,7 +34,8 @@ def affine_forward(x, w, b):
     x_row = x.reshape(N, -1) #(2,120) #自動算:x有240個value，(2,?)-> ?=120
     out = np.dot(x_row, w) + b  #(2,3)
     ###########################################################################
-    #                             END OF YOUR CODE                            # ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
     cache = (x, w, b)
     return out, cache
 
@@ -57,19 +58,20 @@ def affine_backward(dout, cache):
     x, w, b = cache
     dx, dw, db = None, None, None
     ###########################################################################
-    # TODO: Implement the affine backward pass. ###########################################################################
+    # TODO: Implement the affine backward pass.                               #
+    ###########################################################################
 
     dx = np.dot(dout, w.T)           #(N,D)
-    print(dx.shape)
+    #print(dx.shape)
     dx = np.reshape(dx, x.shape)    #(N, d1,..., d_k)
-    print('dx:',dx.shape)
+    #print('dx:',dx.shape)
     x_row = x.reshape(x.shape[0], -1) #(N,D)
-    print('x_row:',x_row.shape)
+    #print('x_row:',x_row.shape)
     dw = np.dot(x_row.T, dout)        #(D,M)
-    print('dw:',dw.shape)
+    #print('dw:',dw.shape)
     db = np.sum(dout, axis=0, keepdims=True) #(1,M)
     return dx, dw, db
-###########################################################################
+     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
     return dx, dw, db
@@ -303,7 +305,10 @@ def dropout_forward(x, dropout_param):
         # TODO: Implement training phase forward pass for inverted dropout.   #
         # Store the dropout mask in the mask variable.                        #
         #######################################################################
-        pass
+        # np.random.rand 是返回一個或一组服從“0~1”均匀分布的隨機樣本值
+        # 讓神經元在某個機率值p之下才激活
+        mask = (np.random.rand(*x.shape) < p) / p
+        out = x * mask
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -311,7 +316,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # TODO: Implement the test phase forward pass for inverted dropout.   #
         #######################################################################
-        pass
+        out = x
         #######################################################################
         #                            END OF YOUR CODE                         #
         #######################################################################
@@ -338,7 +343,7 @@ def dropout_backward(dout, cache):
         #######################################################################
         # TODO: Implement training phase backward pass for inverted dropout   #
         #######################################################################
-        pass
+        dx = mask * dout
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
