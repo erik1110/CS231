@@ -31,6 +31,7 @@ class TwoLayerNet(object):
         - input_dim: An integer giving the size of the input
         - hidden_dim: An integer giving the size of the hidden layer
         - num_classes: An integer giving the number of classes to classify
+        - dropout: Scalar between 0 and 1 giving dropout strength.
         - weight_scale: Scalar giving the standard deviation for random
           initialization of the weights.
         - reg: Scalar giving L2 regularization strength.
@@ -40,18 +41,24 @@ class TwoLayerNet(object):
 
         ############################################################################
         # TODO: Initialize the weights and biases of the two-layer net. Weights    #
-        # should be initialized from a Gaussian centered at 0.0 with               #
-        # standard deviation equal to weight_scale, and biases should be           #
-        # initialized to zero. All weights and biases should be stored in the      #
-        # dictionary self.params, with first layer weights                         #
-        # and biases using the keys 'W1' and 'b1' and second layer                 #
-        # weights and biases using the keys 'W2' and 'b2'.                         #
+        # should be initialized from a Gaussian with standard deviation equal to   #
+        # weight_scale, and biases should be initialized to zero. All weights and  #
+        # biases should be stored in the dictionary self.params, with first layer  #
+        # weights and biases using the keys 'W1' and 'b1' and second layer weights #
+        # and biases using the keys 'W2' and 'b2'.                                 #
         ############################################################################
-        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        #np.random.normal(size,center,std)
+        #input_dim = 5
+        #hidden_dim = 50
+        #num_classes = 7
+        #weight_scale = 1e-3
+        
+        #X = (3,5)
+        #y = (,7)
+        self.params['W1'] = np.random.normal(0, weight_scale, (input_dim, hidden_dim))
+        self.params['b1'] = np.zeros((hidden_dim, ))
+        self.params['W2'] = np.random.normal(0, weight_scale, (hidden_dim, num_classes))
+        self.params['b2'] = np.zeros((num_classes, ))
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -81,11 +88,12 @@ class TwoLayerNet(object):
         # TODO: Implement the forward pass for the two-layer net, computing the    #
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
-        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        #用剛剛做好的RELU
+        W1, b1 = self.params['W1'], self.params['b1']
+        W2, b2 = self.params['W2'], self.params['b2']
+        h1, cache1 = affine_relu_forward(X, W1, b1)
+        out, cache2 = affine_forward(h1, W2, b2)
+        scores = out              # (N,C)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -105,12 +113,22 @@ class TwoLayerNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        ############################################################################
+        #算loss
+        data_loss, dscores = softmax_loss(scores, y)
+        reg_loss = 0.5 * self.reg * np.sum(W1*W1) + 0.5 * self.reg * np.sum(W2*W2)
+        loss = data_loss + reg_loss
+        
+       #用剛剛做好的RELU backward
+       # Backward pass: compute gradients
+        dh1, dW2, db2 = affine_backward(dscores, cache2)
+        dX, dW1, db1 = affine_relu_backward(dh1, cache1)
+       # Add the regularization gradient contribution
+        dW2 += self.reg * W2
+        dW1 += self.reg * W1
+        grads['W1'] = dW1
+        grads['b1'] = db1
+        grads['W2'] = dW2
+        grads['b2'] = db2 ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
 
@@ -121,12 +139,12 @@ class FullyConnectedNet(object):
     """
     A fully-connected neural network with an arbitrary number of hidden layers,
     ReLU nonlinearities, and a softmax loss function. This will also implement
-    dropout and batch/layer normalization as options. For a network with L layers,
+    dropout and batch normalization as options. For a network with L layers,
     the architecture will be
 
-    {affine - [batch/layer norm] - relu - [dropout]} x (L - 1) - affine - softmax
+    {affine - [batch norm] - relu - [dropout]} x (L - 1) - affine - softmax
 
-    where batch/layer normalization and dropout are optional, and the {...} block is
+    where batch normalization and dropout are optional, and the {...} block is
     repeated L - 1 times.
 
     Similar to the TwoLayerNet above, learnable parameters are stored in the
@@ -134,7 +152,7 @@ class FullyConnectedNet(object):
     """
 
     def __init__(self, hidden_dims, input_dim=3*32*32, num_classes=10,
-                 dropout=1, normalization=None, reg=0.0,
+                 dropout=0, use_batchnorm=False, reg=0.0,
                  weight_scale=1e-2, dtype=np.float32, seed=None):
         """
         Initialize a new FullyConnectedNet.
@@ -143,10 +161,9 @@ class FullyConnectedNet(object):
         - hidden_dims: A list of integers giving the size of each hidden layer.
         - input_dim: An integer giving the size of the input.
         - num_classes: An integer giving the number of classes to classify.
-        - dropout: Scalar between 0 and 1 giving dropout strength. If dropout=1 then
+        - dropout: Scalar between 0 and 1 giving dropout strength. If dropout=0 then
           the network should not use dropout at all.
-        - normalization: What type of normalization the network should use. Valid values
-          are "batchnorm", "layernorm", or None for no normalization (the default).
+        - use_batchnorm: Whether or not the network should use batch normalization.
         - reg: Scalar giving L2 regularization strength.
         - weight_scale: Scalar giving the standard deviation for random
           initialization of the weights.
@@ -157,8 +174,8 @@ class FullyConnectedNet(object):
           will make the dropout layers deteriminstic so we can gradient check the
           model.
         """
-        self.normalization = normalization
-        self.use_dropout = dropout != 1
+        self.use_batchnorm = use_batchnorm
+        self.use_dropout = dropout > 0
         self.reg = reg
         self.num_layers = 1 + len(hidden_dims)
         self.dtype = dtype
@@ -168,19 +185,15 @@ class FullyConnectedNet(object):
         # TODO: Initialize the parameters of the network, storing all values in    #
         # the self.params dictionary. Store weights and biases for the first layer #
         # in W1 and b1; for the second layer use W2 and b2, etc. Weights should be #
-        # initialized from a normal distribution centered at 0 with standard       #
-        # deviation equal to weight_scale. Biases should be initialized to zero.   #
+        # initialized from a normal distribution with standard deviation equal to  #
+        # weight_scale and biases should be initialized to zero.                   #
         #                                                                          #
         # When using batch normalization, store scale and shift parameters for the #
         # first layer in gamma1 and beta1; for the second layer use gamma2 and     #
-        # beta2, etc. Scale parameters should be initialized to ones and shift     #
-        # parameters should be initialized to zeros.                               #
+        # beta2, etc. Scale parameters should be initialized to one and shift      #
+        # parameters should be initialized to zero.                                #
         ############################################################################
-        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
         pass
-
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -200,10 +213,8 @@ class FullyConnectedNet(object):
         # of the first batch normalization layer, self.bn_params[1] to the forward
         # pass of the second batch normalization layer, etc.
         self.bn_params = []
-        if self.normalization=='batchnorm':
+        if self.use_batchnorm:
             self.bn_params = [{'mode': 'train'} for i in range(self.num_layers - 1)]
-        if self.normalization=='layernorm':
-            self.bn_params = [{} for i in range(self.num_layers - 1)]
 
         # Cast all parameters to the correct datatype
         for k, v in self.params.items():
@@ -223,9 +234,10 @@ class FullyConnectedNet(object):
         # behave differently during training and testing.
         if self.use_dropout:
             self.dropout_param['mode'] = mode
-        if self.normalization=='batchnorm':
+        if self.use_batchnorm:
             for bn_param in self.bn_params:
                 bn_param['mode'] = mode
+
         scores = None
         ############################################################################
         # TODO: Implement the forward pass for the fully-connected net, computing  #
@@ -239,11 +251,7 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
         pass
-
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -259,18 +267,14 @@ class FullyConnectedNet(object):
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
         #                                                                          #
-        # When using batch/layer normalization, you don't need to regularize the scale   #
+        # When using batch normalization, you don't need to regularize the scale   #
         # and shift parameters.                                                    #
         #                                                                          #
         # NOTE: To ensure that your implementation matches ours and you pass the   #
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
         pass
-
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
