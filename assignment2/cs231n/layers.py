@@ -189,7 +189,21 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
-        pass
+        mean = np.mean(x, axis=0)
+
+        q = x - mean                         
+        qsq = q*q                            
+        var = np.sum(qsq, axis=0)/N
+        vareps = var + eps                   
+        den = np.sqrt(vareps)                
+        invden = 1.0 / den                   
+        x_norm = q * invden                  
+        out = x_norm * gamma + beta          
+
+        running_mean = momentum * running_mean + (1.0 - momentum) * mean
+        running_var = momentum * running_var + (1.0 - momentum) * var
+
+        cache = (x, gamma, beta, q, qsq, vareps, den, invden, x_norm)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -200,7 +214,9 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+        x_hat = (x - running_mean) / np.sqrt(running_var + eps)
+        y = gamma * x_hat + beta
+        out = y
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -236,7 +252,21 @@ def batchnorm_backward(dout, cache):
     # TODO: Implement the backward pass for batch normalization. Store the    #
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
-    pass
+    N, D = dout.shape
+    x, gamma, beta, q, qsq, vareps, den, invden, x_norm = cache
+
+    dbeta = dout.sum(axis=0)
+    dgamma = np.sum(x_norm * dout, axis=0)
+
+    dx_norm = gamma * dout                            
+    dq = invden * dx_norm                             
+    dinvden = np.sum(q * dx_norm, axis=0)            
+    dden = (-1.0 / (den**2)) * dinvden                
+    dvareps = (1.0) / (2.0 * np.sqrt(vareps)) * dden  
+    dqsq = 1.0 / N * dvareps                          
+    dq += 2.0 * q * dqsq                             
+    dmean = np.sum(dq, axis=0) / N
+    dx = dq - dmean
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -266,7 +296,16 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    pass
+    N, D = dout.shape
+    x, gamma, beta, q, qsq, vareps, den, invden, x_norm = cache
+
+    dbeta = dout.sum(axis=0)
+    dgamma = np.sum(x_norm * dout, axis=0)
+
+    dx_norm = gamma * dout
+    dldvar = np.sum(dx_norm*q*(invden**3), axis=0)*(-1.0/2.0)
+    dldmean = np.sum(dx_norm, axis=0)*(-1.0/den) + dldvar * (-2.0/N * np.sum(q, axis=0))
+    dx = dx_norm * invden + dldvar * 2.0 * q / N + dldmean / N
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -581,3 +620,93 @@ def softmax_loss(x, y):
     dx[np.arange(N), y] -= 1
     dx /= N
     return loss, dx
+
+def layernorm_forward(x, gamma, beta, ln_param):
+    """
+    Forward pass for layer normalization.
+    During both training and test-time, the incoming data is normalized per data-point,
+    before being scaled by gamma and beta parameters identical to that of batch normalization.
+    
+    Note that in contrast to batch normalization, the behavior during train and test-time for
+    layer normalization are identical, and we do not need to keep track of running averages
+    of any sort.
+    Input:
+    - x: Data of shape (N, D)
+    - gamma: Scale parameter of shape (D,)
+    - beta: Shift paremeter of shape (D,)
+    - ln_param: Dictionary with the following keys:
+        - eps: Constant for numeric stability
+    Returns a tuple of:
+    - out: of shape (N, D)
+    - cache: A tuple of values needed in the backward pass
+    """
+    out, cache = None, None
+    eps = ln_param.get('eps', 1e-5)
+    ###########################################################################
+    # TODO: Implement the training-time forward pass for layer norm.          #
+    # Normalize the incoming data, and scale and  shift the normalized data   #
+    #  using gamma and beta.                                                  #
+    # HINT: this can be done by slightly modifying your training-time         #
+    # implementation of  batch normalization, and inserting a line or two of  #
+    # well-placed code. In particular, can you think of any matrix            #
+    # transformations you could perform, that would enable you to copy over   #
+    # the batch norm code and leave it almost unchanged?                      #
+    ###########################################################################
+    # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
+    mean = x.mean(axis = 1)[..., None]
+    var = x.var(axis = 1)[..., None]
+    std = np.sqrt(var + eps)
+    temp = (x-mean)/std 
+    out = gamma*temp + beta
+    
+    cache = {'x':x, 'gamma':gamma, 'mean':mean,
+                 'std':std, 'u_out':temp, 'out':out}
+
+    # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    return out, cache
+
+def layernorm_backward(dout, cache):
+    """
+    Backward pass for layer normalization.
+    For this implementation, you can heavily rely on the work you've done already
+    for batch normalization.
+    Inputs:
+    - dout: Upstream derivatives, of shape (N, D)
+    - cache: Variable of intermediates from layernorm_forward.
+    Returns a tuple of:
+    - dx: Gradient with respect to inputs x, of shape (N, D)
+    - dgamma: Gradient with respect to scale parameter gamma, of shape (D,)
+    - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
+    """
+    dx, dgamma, dbeta = None, None, None
+    ###########################################################################
+    # TODO: Implement the backward pass for layer norm.                       #
+    #                                                                         #
+    # HINT: this can be done by slightly modifying your training-time         #
+    # implementation of batch normalization. The hints to the forward pass    #
+    # still apply!                                                            #
+    ###########################################################################
+    # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
+    x = cache["x"]
+    mean = cache["mean"]
+    std = cache["std"] 
+    u_out = cache["u_out"]
+    gamma = cache["gamma"]
+    _, D = x.shape
+    
+    dbeta  = dout.sum(axis = 0)
+    dgamma = (u_out*dout).sum(axis = 0)
+    du_out = gamma*dout
+    
+    dx = du_out/std - du_out.sum(1)[..., None]/(D*std) - np.sum(du_out*u_out/std, 1)[..., None]*u_out/D
+
+    # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    return dx, dgamma, dbeta
