@@ -25,17 +25,20 @@ def affine_forward(x, w, b):
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
     ###########################################################################
+    
+    #pass
 #     input_size: 240
 #     weight_size: 360
 #     x: (2, 4, 5, 6) -> 240value
 #     w: (120, 3)
 #     b: (3,)
+
     N = x.shape[0] # 2
-    x_row = x.reshape(N, -1) #(2,120) #自動算:x有240個value，(2,?)-> ?=120
-    out = np.dot(x_row, w) + b  #(2,3)
+    x_row = x.reshape(N, -1) #(2,120) #換算:x有240個value，(2,?)-> ?=120
+    out = np.dot(x_row, w) + b  #(2,120)*(120,3)=(2,3)
+    
     ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    #                             END OF YOUR CODE                            # ###########################################################################
     cache = (x, w, b)
     return out, cache
 
@@ -58,20 +61,26 @@ def affine_backward(dout, cache):
     x, w, b = cache
     dx, dw, db = None, None, None
     ###########################################################################
-    # TODO: Implement the affine backward pass.                               #
-    ###########################################################################
+    # TODO: Implement the affine backward pass. ###########################################################################
+    
+    #x = (10, 2, 3) -> (10,6)
+    #w = (6, 5)
+    #b = (1,5)
+    #dout = (10, 5)
+    
+    # N=10, D=6
+    N, D = x.shape[0], w.shape[0]
+    
+    #dx = dout(10,5) * w -> w.T(5,6) = (10,6)
+    dx = np.dot(dout, w.T).reshape(x.shape)
+    
+    #dw = dout(10,5)* x(10,6) -> x.T(6,10) * dout(10,5) = (6,5)
+    dw = np.dot(x.reshape(N, D).T, dout)
+    
+    #(1,5)
+    db = np.sum(dout, axis = 0)
 
-    dx = np.dot(dout, w.T)           #(N,D)
-    #print(dx.shape)
-    dx = np.reshape(dx, x.shape)    #(N, d1,..., d_k)
-    #print('dx:',dx.shape)
-    x_row = x.reshape(x.shape[0], -1) #(N,D)
-    #print('x_row:',x_row.shape)
-    dw = np.dot(x_row.T, dout)        #(D,M)
-    #print('dw:',dw.shape)
-    db = np.sum(dout, axis=0, keepdims=True) #(1,M)
-    return dx, dw, db
-     ###########################################################################
+###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
     return dx, dw, db
