@@ -47,7 +47,9 @@ class TwoLayerNet(object):
         # weights and biases using the keys 'W1' and 'b1' and second layer weights #
         # and biases using the keys 'W2' and 'b2'.                                 #
         ############################################################################
-        #np.random.normal(size,center,std)
+        
+        #pass
+        #np.random.normal(平均數,std,輸出的shape)
         #input_dim = 5
         #hidden_dim = 50
         #num_classes = 7
@@ -55,10 +57,11 @@ class TwoLayerNet(object):
         
         #X = (3,5)
         #y = (,7)
-        self.params['W1'] = np.random.normal(0, weight_scale, (input_dim, hidden_dim))
-        self.params['b1'] = np.zeros((hidden_dim, ))
-        self.params['W2'] = np.random.normal(0, weight_scale, (hidden_dim, num_classes))
-        self.params['b2'] = np.zeros((num_classes, ))
+        self.params['W1'] = np.random.normal(0, weight_scale, (input_dim, hidden_dim))#隨機建立 5*50 的矩陣 
+        self.params['b1'] = np.zeros((1, hidden_dim)) # (1,50)
+        self.params['W2'] = np.random.normal(0, weight_scale, (hidden_dim, num_classes)) #隨機建立 50*7 的矩陣
+        self.params['b2'] = np.zeros((1, num_classes)) #(1,7)
+        
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -88,12 +91,15 @@ class TwoLayerNet(object):
         # TODO: Implement the forward pass for the two-layer net, computing the    #
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
+        
+        #pass
         #用剛剛做好的RELU
         W1, b1 = self.params['W1'], self.params['b1']
         W2, b2 = self.params['W2'], self.params['b2']
         h1, cache1 = affine_relu_forward(X, W1, b1)
         out, cache2 = affine_forward(h1, W2, b2)
-        scores = out              # (N,C)
+        scores = out
+        
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -113,18 +119,22 @@ class TwoLayerNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        #算loss
+        
+        #用softmax算loss
         data_loss, dscores = softmax_loss(scores, y)
+        #要L2
         reg_loss = 0.5 * self.reg * np.sum(W1*W1) + 0.5 * self.reg * np.sum(W2*W2)
         loss = data_loss + reg_loss
         
-        #用剛剛做好的RELU backward
-        # Backward pass: compute gradients
+       # 用剛剛做好的RELU backward
+       # Backward pass: compute gradients
         dh1, dW2, db2 = affine_backward(dscores, cache2)
         dX, dW1, db1 = affine_relu_backward(dh1, cache1)
-        # Add the regularization gradient contribution
+
+       # W更新
         dW2 += self.reg * W2
         dW1 += self.reg * W1
+        
         grads['W1'] = dW1
         grads['b1'] = db1
         grads['W2'] = dW2

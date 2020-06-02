@@ -58,18 +58,29 @@ def sgd_momentum(w, dw, config=None):
     if config is None: config = {}
     config.setdefault('learning_rate', 1e-2)
     config.setdefault('momentum', 0.9)
-    v = config.get('velocity', np.zeros_like(w))
+    v = config.get('velocity', np.zeros_like(w)) 
+    #np.zeros_like(w):
+    #函数主要是想实现构造一个矩阵W_update，其维度与矩阵W一致，并为其初始化为全0；这个函数方便的构造了新矩阵，无需参数指定shape大小
 
     next_w = None
     ###########################################################################
     # TODO: Implement the momentum update formula. Store the updated value in #
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
-    # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # pass
+    
+    #原始的 Stochastic Gradient Descent：
+    # xt+1 = xt − α∇f(xt)
+    # SGD + Momumtum：
+    # vt + 1 = ρvt − α∇f(xt)xt + 1 = xt + vt+1
+    # v 代表目前的方向速度，初始值為 0，如果負梯度與目前方向相同，則速度會越來越快，參數的更新幅度就會變大；反之則越來越慢，參數的更新幅度會變小。
+    
+    # config = {'learning_rate': 1e-3, 'velocity': v}
+    # 0.9 * v - 0.001 * dw
+    v = config['momentum'] * v - config['learning_rate'] * dw
+    next_w = w + v
 
-    # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -105,7 +116,16 @@ def rmsprop(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    #pass
+    #更新learning rate用ㄉ 
+    #ρ  為 decay rate，通常設為 0.9、0.99、0.999。
+    #ϵ 是一個很小的值，為了避免除以 0 的情況產生。
+    
+    #講義ｐ32
+    #RMSProp公式:  grad_squared = decay_rate * grad_squared + (1 - decay_rate) * dx * dx
+    # x -= learning_rate * dx / (np.sqrt(grad_squared)+ 1e-7)
+    config['cache'] = config['decay_rate'] * config['cache'] + (1 - config['decay_rate']) * (dw ** 2)
+    next_w = w + -config['learning_rate'] * dw / np.sqrt(config['cache'] + config['epsilon'])
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
