@@ -12,3 +12,10 @@
   - Dropout
   - Convolutional Networks
   - PyTorch / TensorFlow on CIFAR-10
+ 
+- [assignment3](https://cs231n.github.io/assignments2020/assignment3/)
+  - Image Captioning with Vanilla RNNs 
+  - Image Captioning with LSTMs
+  - Network Visualization: Saliency maps, Class Visualization, and Fooling Images
+  - Style Transfer
+  - Generative Adversarial Networks
