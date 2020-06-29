@@ -115,16 +115,16 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     - out: of shape (N, D)
     - cache: A tuple of values needed in the backward pass
     """
-    mode = bn_param['mode']
-    eps = bn_param.get('eps', 1e-5)
-    momentum = bn_param.get('momentum', 0.9)
+    mode = bn_param["mode"]
+    eps = bn_param.get("eps", 1e-5)
+    momentum = bn_param.get("momentum", 0.9)
 
     N, D = x.shape
-    running_mean = bn_param.get('running_mean', np.zeros(D, dtype=x.dtype))
-    running_var = bn_param.get('running_var', np.zeros(D, dtype=x.dtype))
+    running_mean = bn_param.get("running_mean", np.zeros(D, dtype=x.dtype))
+    running_var = bn_param.get("running_var", np.zeros(D, dtype=x.dtype))
 
     out, cache = None, None
-    if mode == 'train':
+    if mode == "train":
         # Compute output
         mu = x.mean(axis=0)
         xc = x - mu
@@ -142,7 +142,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Update running average of variance
         running_var *= momentum
         running_var += (1 - momentum) * var
-    elif mode == 'test':
+    elif mode == "test":
         # Using running mean and variance to normalize
         std = np.sqrt(running_var + eps)
         xn = (x - running_mean) / std
@@ -152,8 +152,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
 
     # Store the updated running means back into bn_param
-    bn_param['running_mean'] = running_mean
-    bn_param['running_var'] = running_var
+    bn_param["running_mean"] = running_mean
+    bn_param["running_var"] = running_var
 
     return out, cache
 
@@ -176,7 +176,7 @@ def batchnorm_backward(dout, cache):
     - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
     """
     mode = cache[0]
-    if mode == 'train':
+    if mode == "train":
         mode, x, gamma, xc, std, xn, out = cache
 
         N = x.shape[0]
@@ -189,7 +189,7 @@ def batchnorm_backward(dout, cache):
         dxc += (2.0 / N) * xc * dvar
         dmu = np.sum(dxc, axis=0)
         dx = dxc - dmu / N
-    elif mode == 'test':
+    elif mode == "test":
         mode, x, xn, gamma, beta, std = cache
         dbeta = dout.sum(axis=0)
         dgamma = np.sum(xn * dout, axis=0)

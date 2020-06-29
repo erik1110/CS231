@@ -1,5 +1,5 @@
-from cs231n.layers import *
-from cs231n.fast_layers import *
+from .layers import *
+from .fast_layers import *
 
 
 def affine_relu_forward(x, w, b):
@@ -98,6 +98,7 @@ def affine_ln_relu_backward(dout, cache):
     da, dgamma, dbeta = layernorm_backward(da_ln, ln_cache)
     dx, dw, db = affine_backward(da, fc_cache)
     return dx, dw, db, dgamma, dbeta
+
 
 def conv_relu_forward(x, w, b, conv_param):
     """
