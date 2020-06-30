@@ -218,8 +218,8 @@ def sigmoid(x):
     """
     A numerically stable version of the logistic sigmoid function.
     """
-    pos_mask = x >= 0
-    neg_mask = x < 0
+    pos_mask = (x >= 0)
+    neg_mask = (x < 0)
     z = np.zeros_like(x)
     z[pos_mask] = np.exp(-x[pos_mask])
     z[neg_mask] = np.exp(x[neg_mask])
@@ -462,8 +462,7 @@ def temporal_softmax_loss(x, y, mask, verbose=False):
     dx_flat /= N
     dx_flat *= mask_flat[:, None]
 
-    if verbose:
-        print("dx_flat: ", dx_flat.shape)
+    if verbose: print('dx_flat: ', dx_flat.shape)
 
     dx = dx_flat.reshape(N, T, V)
 
