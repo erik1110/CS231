@@ -10,11 +10,9 @@ class CaptioningRNN(object):
     """
     A CaptioningRNN produces captions from image features using a recurrent
     neural network.
-
     The RNN receives input vectors of size D, has a vocab size of V, works on
     sequences of length T, has an RNN hidden dimension of H, uses word vectors
     of dimension W, and operates on minibatches of size N.
-
     Note that we don't use any regularization for the CaptioningRNN.
     """
 
@@ -22,7 +20,6 @@ class CaptioningRNN(object):
                  hidden_dim=128, cell_type='rnn', dtype=np.float32):
         """
         Construct a new CaptioningRNN instance.
-
         Inputs:
         - word_to_idx: A dictionary giving the vocabulary. It contains V entries,
           and maps each string to a unique integer in the range [0, V).
@@ -80,12 +77,10 @@ class CaptioningRNN(object):
         Compute training-time loss for the RNN. We input image features and
         ground-truth captions for those images, and use an RNN (or LSTM) to compute
         loss and gradients on all parameters.
-
         Inputs:
         - features: Input image features, of shape (N, D)
         - captions: Ground-truth captions; an integer array of shape (N, T) where
           each element is in the range 0 <= y[i, t] < V
-
         Returns a tuple of:
         - loss: Scalar loss
         - grads: Dictionary of gradients parallel to self.params
@@ -141,7 +136,25 @@ class CaptioningRNN(object):
         # in your implementation, if needed.                                       #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        h0,cache1 = affine_forward(features, W_proj, b_proj)
+        x,cache2 = word_embedding_forward(captions_in, W_embed)
+        if self.cell_type == 'rnn':
+            h,cache3 = rnn_forward(x, h0, Wx, Wh, b)
+        else:
+            h,cache3 = lstm_forward(x, h0, Wx, Wh, b)
+        score,cache4 = temporal_affine_forward(h, W_vocab, b_vocab)
+        loss,dscore = temporal_softmax_loss(score, captions_out, mask, verbose=False)
 
+        dh, dW_vocab, db_vocab = temporal_affine_backward(dscore, cache4)
+        if self.cell_type == 'rnn':
+            dx, dh0, dWx, dWh, db = rnn_backward(dh, cache3)
+        else:
+            dx, dh0, dWx, dWh, db = lstm_backward(dh, cache3)
+        dW_embed = word_embedding_backward(dx, cache2)
+        dW_proj = features.T.dot(dh0)
+        db_proj = dh0.sum(axis=0)
+        grads = {'W_vocab':dW_vocab, 'b_vocab':db_vocab, 'Wx':dWx, 'Wh':dWh, 
+        'b':db, 'W_embed':dW_embed, 'W_proj':dW_proj, 'b_proj':db_proj}
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -156,21 +169,17 @@ class CaptioningRNN(object):
         """
         Run a test-time forward pass for the model, sampling captions for input
         feature vectors.
-
         At each timestep, we embed the current word, pass it and the previous hidden
         state to the RNN to get the next hidden state, use the hidden state to get
         scores for all vocab words, and choose the word with the highest score as
         the next word. The initial hidden state is computed by applying an affine
         transform to the input image features, and the initial word is the <START>
         token.
-
         For LSTMs you will also have to keep track of the cell state; in that case
         the initial cell state should be zero.
-
         Inputs:
         - features: Array of input image features of shape (N, D).
         - max_length: Maximum length T of generated captions.
-
         Returns:
         - captions: Array of shape (N, max_length) giving sampled captions,
           where each element is an integer in the range [0, V). The first element
@@ -210,7 +219,21 @@ class CaptioningRNN(object):
         # you are using an LSTM, initialize the first cell state to zeros.        #
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        h0 = features.dot(W_proj) + b_proj
+        c0 = np.zeros(h0.shape)
+        V, W = W_embed.shape
+        x = np.ones((N, W)) * W_embed[self._start]
+        for i in range(max_length):
+            if self.cell_type == 'rnn':
+                next_h, _ = rnn_step_forward(x, h0, Wx, Wh, b)
+            else:
+                next_h, next_c, _ = lstm_step_forward(x, h0, c0, Wx, Wh, b)
+                c0 = next_c
+        out = next_h.dot(W_vocab) + b_vocab
+        max_indices = out.argmax(axis=1)
+        captions[:,i] = max_indices
+        x = W_embed[max_indices]
+        h0 = next_h        
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
