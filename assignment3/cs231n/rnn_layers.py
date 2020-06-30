@@ -35,9 +35,13 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
     # and cache variables respectively.                                          #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
     pass
 
+    # 公式:
+    # ht = tanh(Wh * ht−1 + Wx * Xt + b)
+    next_h = np.tanh(np.dot(prev_h, Wh) + np.dot(x, Wx) + b)
+    cache = (next_h, Wx, Wh, x, prev_h)
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -70,7 +74,18 @@ def rnn_step_backward(dnext_h, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     pass
+    # tanh
+    # 函数：f(x) = tanh(x)
+    # 導數: f(x)‘ = 1−tanh^2(x)
 
+    next_h, Wx, Wh, x, prev_h = cache
+    dtanh = dnext_h * (1 - next_h ** 2)
+    dx = np.dot(dtanh, Wx.T)
+    dprev_h = np.dot(dtanh, Wh.T)
+    dWx = np.dot(x.T, dtanh)
+    dWh = np.dot(prev_h.T, dtanh)
+    db = dtanh.sum(axis=0)
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -105,6 +120,22 @@ def rnn_forward(x, h0, Wx, Wh, b):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     pass
+    # 我们假设每个输入序列中包含T个向量，每个都有D维，RNN使用隐藏层尺寸为H，共有N个序列
+    # RNN 的 forward 是要用 for 循环按照序列时序展开的，
+    # 每个时刻 t 接收对应的输入 xt，
+    # 和上时刻隐层的激活值（hidden state） ht−1，
+    # 得到此时刻的 hidden state 值 ht，
+    # 而在此过程权重 Wx,Wh,bWx,Wh,b 是共享的
+    T = x.shape[1]
+    prev_h = h0
+    h, cache = [], []
+    for t in range(T):
+        next_h, step_cache = rnn_step_forward(x[:, t, :], prev_h, Wx, Wh, b)
+        h.append(next_h)
+        cache.append(step_cache)
+        prev_h = next_h
+    h = np.array(h)
+    h = h.transpose(1, 0, 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -141,6 +172,21 @@ def rnn_backward(dh, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     pass
+    N, T, H = dh.shape
+    D = cache[0][1].shape[0] # Wx is (D, H)
+    stepdprev_h = np.zeros((N, H))
+    
+    dx = []
+    dWx = np.zeros((D, H))
+    dWh = np.zeros((H, H))
+    db = np.zeros(H)
+    
+    for t in range(T-1, -1, -1):
+        stepdx, stepdprev_h, stepdWx, stepdWh, stepdb = rnn_step_backward(dh[:, t, :] + stepdprev_h, cache[t])
+        dx.append(stepdx)
+        dWx, dWh, db = dWx + stepdWx, dWh + stepdWh, db + stepdb
+    dh0 = stepdprev_h
+    dx = np.array(dx[::-1]).transpose(1, 0, 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -173,6 +219,9 @@ def word_embedding_forward(x, W):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     pass
+    # 词表（词表大小为V)，映射到 D 维向量
+    out = W[x, :]
+    cache = (W, x)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -206,6 +255,10 @@ def word_embedding_backward(dout, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     pass
+    W, x = cache
+    dW = np.zeros_like(W)
+    #dW[x] += dout # this will not work, see the doc of np.add.at
+    np.add.at(dW, x, dout)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
